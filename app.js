@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
       editTxt.innerText = 'Done';
       editableElements.forEach(el => {
         el.classList.add('editable');
-        el.setAttribute('contenteditable', 'true');
+        el.setAttribute('contenteditable', 'false');
       });
     } else {
       editBtn.classList.remove('active');
