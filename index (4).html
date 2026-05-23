@@ -1,0 +1,266 @@
+
+<h2 class="sr-only">A bright, animated, fully customizable Gen-Z creative operating system dashboard with live font and color editing</h2>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Shrikhand&family=Bagel+Fat+One&family=Pixelify+Sans:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+.os{
+  --cream:#FFF6E9;--pink:#FF4D9D;--blue:#2D6BFF;--yellow:#FFD23F;--orange:#FF6B2C;
+  --lime:#9BE015;--purple:#9B6BFF;--mint:#2FD7C2;--ink:#1A1530;
+  --accent:#FF4D9D;--display:'Fredoka';
+  background:var(--cream);border:3px solid var(--ink);border-radius:26px;overflow:hidden;
+  font-family:'Space Grotesk',sans-serif;color:var(--ink);position:relative;
+}
+.os.editing [data-edit]{outline:2px dashed var(--accent);outline-offset:3px;cursor:text;border-radius:4px}
+
+.bar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--cream);border-bottom:3px solid var(--ink);flex-wrap:wrap;gap:10px}
+.logo{font-family:var(--display);font-size:26px;color:var(--accent);display:flex;align-items:center;gap:8px;line-height:1}
+.logo .star{width:18px;height:18px;background:var(--yellow);border:2px solid var(--ink);border-radius:5px;transform:rotate(12deg);animation:spin 6s linear infinite}
+@keyframes spin{to{transform:rotate(372deg)}}
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ctl{display:flex;align-items:center;gap:7px;background:#fff;border:2.5px solid var(--ink);border-radius:30px;padding:5px 7px 5px 13px;box-shadow:3px 3px 0 var(--ink)}
+.ctl-lab{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--ink)}
+.fontsel{border:none;background:transparent;font-family:'Space Grotesk';font-size:12px;font-weight:600;cursor:pointer;outline:none;color:var(--ink);padding:3px 4px}
+.dots{display:flex;gap:6px}
+.dot{width:22px;height:22px;border-radius:50%;border:2.5px solid var(--ink);cursor:pointer;transition:transform .12s;box-shadow:2px 2px 0 var(--ink)}
+.dot:hover{transform:scale(1.18) rotate(-8deg)}
+.dot.on{transform:scale(1.25);box-shadow:0 0 0 3px #fff,3px 3px 0 var(--ink)}
+.editbtn{display:flex;align-items:center;gap:7px;background:var(--ink);color:var(--cream);border:2.5px solid var(--ink);border-radius:30px;padding:9px 16px;font-family:'Space Grotesk';font-size:12px;font-weight:600;cursor:pointer;box-shadow:3px 3px 0 var(--accent)}
+.editbtn.on{background:var(--accent);box-shadow:3px 3px 0 var(--ink)}
+
+.marquee{background:var(--ink);overflow:hidden;white-space:nowrap;padding:9px 0;border-bottom:3px solid var(--ink)}
+.mq-track{display:inline-block;animation:mq 18s linear infinite;font-family:var(--display);font-size:15px;color:var(--cream)}
+.mq-track span{margin:0 6px}
+.mq-track .pip{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--accent);vertical-align:middle;margin:0 14px}
+@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+.hero{position:relative;padding:42px 24px 30px;text-align:center;overflow:hidden}
+.hero h1{font-family:var(--display);font-size:58px;line-height:.95;letter-spacing:-.5px;position:relative;z-index:2}
+.hero h1 .hl{background:var(--accent);color:#fff;padding:0 14px;border:2.5px solid var(--ink);border-radius:14px;display:inline-block;transform:rotate(-2deg);box-shadow:4px 4px 0 var(--ink)}
+.hero p{font-size:15px;font-weight:500;color:#5a5470;max-width:480px;margin:18px auto 22px;line-height:1.5;position:relative;z-index:2}
+.hero-btns{display:flex;gap:12px;justify-content:center;position:relative;z-index:2;flex-wrap:wrap}
+.btn-go{background:var(--accent);color:#fff;border:2.5px solid var(--ink);border-radius:30px;padding:13px 26px;font-family:'Space Grotesk';font-size:14px;font-weight:700;cursor:pointer;box-shadow:4px 4px 0 var(--ink);display:flex;align-items:center;gap:8px;transition:transform .12s}
+.btn-go:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+.btn-go2{background:#fff;color:var(--ink);border:2.5px solid var(--ink);border-radius:30px;padding:13px 24px;font-family:'Space Grotesk';font-size:14px;font-weight:700;cursor:pointer;box-shadow:4px 4px 0 var(--ink);transition:transform .12s}
+.btn-go2:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+
+.sticker{position:absolute;font-family:var(--display);font-size:13px;color:var(--ink);border:2.5px solid var(--ink);border-radius:30px;padding:5px 13px;box-shadow:3px 3px 0 var(--ink);z-index:1;animation:bob 3.5s ease-in-out infinite}
+.s1{top:34px;left:30px;background:var(--yellow);transform:rotate(-12deg);animation-delay:0s}
+.s2{top:24px;right:46px;background:var(--lime);transform:rotate(10deg);animation-delay:.6s}
+.s3{bottom:30px;left:60px;background:var(--blue);color:#fff;transform:rotate(8deg);animation-delay:1.1s}
+.s4{bottom:48px;right:40px;background:var(--purple);color:#fff;transform:rotate(-9deg);animation-delay:1.6s}
+.s5{top:120px;left:14px;background:var(--orange);color:#fff;transform:rotate(6deg);animation-delay:.9s}
+.s6{top:110px;right:18px;background:var(--mint);transform:rotate(-7deg);animation-delay:1.3s}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(var(--r,0))}50%{transform:translateY(-9px) rotate(var(--r,0))}}
+.s1{--r:-12deg}.s2{--r:10deg}.s3{--r:8deg}.s4{--r:-9deg}.s5{--r:6deg}.s6{--r:-7deg}
+
+.wave{display:block;width:100%;height:30px;margin-top:-2px}
+
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;padding:24px 24px 4px}
+.sec-head h2{font-family:var(--display);font-size:30px;line-height:1}
+.sec-head .sh-tag{font-size:12px;font-weight:600;color:#7a7490;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.sec-pill{font-family:'Space Grotesk';font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:#fff;border:2.5px solid var(--ink);border-radius:30px;padding:8px 14px;cursor:pointer;box-shadow:3px 3px 0 var(--ink);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.sec-pill:hover{background:var(--yellow)}
+
+.rooms{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px 24px 8px}
+.room{border:3px solid var(--ink);border-radius:22px;padding:18px;cursor:pointer;position:relative;box-shadow:5px 5px 0 var(--ink);transition:transform .14s,box-shadow .14s;min-height:158px;display:flex;flex-direction:column;justify-content:space-between;opacity:0;animation:pop .5s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+.room:hover{transform:translate(-3px,-3px) rotate(-1deg);box-shadow:8px 8px 0 var(--ink)}
+.room .r-ico{width:44px;height:44px;border:2.5px solid var(--ink);border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px;box-shadow:2px 2px 0 var(--ink)}
+.room h3{font-family:var(--display);font-size:20px;line-height:1;margin-bottom:6px}
+.room p{font-size:12.5px;font-weight:500;line-height:1.4;opacity:.85}
+.room .r-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:#fff;border:2px solid var(--ink);border-radius:20px;padding:3px 10px;display:inline-block;margin-top:11px}
+.r-pink{background:var(--pink);color:#fff}.r-pink p{color:#fff}.r-pink .r-tag{color:var(--ink)}
+.r-blue{background:var(--blue);color:#fff}.r-blue p{color:#fff}.r-blue .r-tag{color:var(--ink)}
+.r-yellow{background:var(--yellow)}
+.r-lime{background:var(--lime)}
+.r-orange{background:var(--orange);color:#fff}.r-orange p{color:#fff}.r-orange .r-tag{color:var(--ink)}
+.r-purple{background:var(--purple);color:#fff}.r-purple p{color:#fff}.r-purple .r-tag{color:var(--ink)}
+.r-mint{background:var(--mint)}
+.r-cream{background:#fff}
+
+.aibar{margin:16px 24px;background:var(--ink);border:3px solid var(--ink);border-radius:22px;padding:20px;box-shadow:6px 6px 0 var(--accent)}
+.aibar .ai-t{font-family:var(--display);font-size:22px;color:var(--cream);margin-bottom:4px;display:flex;align-items:center;gap:9px}
+.aibar .ai-s{font-size:12px;font-weight:500;color:#b9b3d0;margin-bottom:14px}
+.ai-row{display:flex;gap:10px}
+.ai-in{flex:1;background:rgba(255,255,255,.1);border:2.5px solid rgba(255,255,255,.25);border-radius:16px;padding:13px 16px;color:var(--cream);font-family:'Space Grotesk';font-size:14px;font-weight:500;outline:none}
+.ai-in::placeholder{color:#8b85a8}
+.ai-send{background:var(--accent);border:2.5px solid var(--cream);border-radius:16px;padding:0 22px;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center}
+.ai-send:hover{filter:brightness(1.1)}
+.ai-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}
+.ai-chip{font-family:'Space Grotesk';font-size:12px;font-weight:600;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.25);color:var(--cream);border-radius:20px;padding:6px 13px;cursor:pointer}
+.ai-chip:hover{background:var(--accent);border-color:var(--accent)}
+
+.tpl-row{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;padding:8px 24px 24px}
+.tpl{background:#fff;border:2.5px solid var(--ink);border-radius:18px;padding:14px;cursor:pointer;box-shadow:4px 4px 0 var(--ink);transition:transform .12s}
+.tpl:hover{transform:translateY(-4px) rotate(1.5deg)}
+.tpl .t-ic{width:36px;height:36px;border:2px solid var(--ink);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:10px}
+.tpl h4{font-family:var(--display);font-size:15px;margin-bottom:2px}
+.tpl p{font-size:11px;font-weight:500;color:#7a7490}
+
+.foot{background:var(--accent);border-top:3px solid var(--ink);padding:26px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
+.foot h3{font-family:var(--display);font-size:30px;color:#fff;line-height:1;max-width:420px}
+.foot .f-btn{background:var(--ink);color:var(--cream);border:2.5px solid var(--ink);border-radius:30px;padding:14px 26px;font-family:'Space Grotesk';font-size:14px;font-weight:700;cursor:pointer;box-shadow:4px 4px 0 #fff;display:flex;align-items:center;gap:8px}
+.foot .f-btn:hover{box-shadow:6px 6px 0 #fff;transform:translate(-2px,-2px)}
+.hint{font-size:11px;font-weight:600;color:#7a7490;text-align:center;padding:6px 0 14px;display:flex;align-items:center;justify-content:center;gap:7px}
+</style>
+
+<div class="os" id="os">
+  <div class="bar">
+    <div class="logo"><span class="star"></span><span data-edit>poppit</span></div>
+    <div class="controls">
+      <div class="ctl">
+        <span class="ctl-lab">Font</span>
+        <select class="fontsel" onchange="setFont(this.value)">
+          <option value="Fredoka">Fredoka</option>
+          <option value="Shrikhand">Shrikhand</option>
+          <option value="Bagel Fat One">Bagel Fat</option>
+          <option value="Pixelify Sans">Pixel</option>
+        </select>
+      </div>
+      <div class="ctl" style="padding:6px 12px">
+        <span class="ctl-lab">Color</span>
+        <div class="dots">
+          <div class="dot on" style="background:#FF4D9D" onclick="setAccent(this,'#FF4D9D')"></div>
+          <div class="dot" style="background:#2D6BFF" onclick="setAccent(this,'#2D6BFF')"></div>
+          <div class="dot" style="background:#FF6B2C" onclick="setAccent(this,'#FF6B2C')"></div>
+          <div class="dot" style="background:#9BE015" onclick="setAccent(this,'#9BE015')"></div>
+          <div class="dot" style="background:#9B6BFF" onclick="setAccent(this,'#9B6BFF')"></div>
+        </div>
+      </div>
+      <button class="editbtn" id="editBtn" onclick="toggleEdit()"><i class="ti ti-pencil"></i> <span id="editTxt">Edit</span></button>
+    </div>
+  </div>
+
+  <div class="marquee">
+    <div class="mq-track">
+      <span data-edit>DROP IT HOT</span><span class="pip"></span><span data-edit>NEW ARRIVALS DAILY</span><span class="pip"></span><span data-edit>STEAL THE LOOK</span><span class="pip"></span><span data-edit>BUDGET = BANGER</span><span class="pip"></span><span data-edit>MADE TO GO VIRAL</span><span class="pip"></span><span data-edit>SHIP IT FAST</span><span class="pip"></span>
+      <span>DROP IT HOT</span><span class="pip"></span><span>NEW ARRIVALS DAILY</span><span class="pip"></span><span>STEAL THE LOOK</span><span class="pip"></span><span>BUDGET = BANGER</span><span class="pip"></span><span>MADE TO GO VIRAL</span><span class="pip"></span><span>SHIP IT FAST</span><span class="pip"></span>
+    </div>
+  </div>
+
+  <div class="hero">
+    <span class="sticker s1" data-edit>NEW</span>
+    <span class="sticker s2" data-edit>VIRAL</span>
+    <span class="sticker s3" data-edit>$1 DROP</span>
+    <span class="sticker s4" data-edit>HOT</span>
+    <span class="sticker s5" data-edit>SALE</span>
+    <span class="sticker s6" data-edit>FRESH</span>
+    <h1 data-edit>Make stuff that<br><span class="hl" data-edit>sells out.</span></h1>
+    <p data-edit>The whole creative engine for fast, affordable Gen-Z brands — ideate, write, design, story your SKUs, wireframe, launch and automate. All in one bright little studio.</p>
+    <div class="hero-btns">
+      <button class="btn-go" onclick="sendPrompt('Start a brand new product drop campaign in poppit')"><i class="ti ti-bolt"></i> Start a drop</button>
+      <button class="btn-go2" onclick="sendPrompt('Give me a tour of every room in the poppit creative OS')">Take the tour</button>
+    </div>
+  </div>
+
+  <svg class="wave" viewBox="0 0 1200 30" preserveAspectRatio="none"><path d="M0,30 Q50,0 100,30 T200,30 T300,30 T400,30 T500,30 T600,30 T700,30 T800,30 T900,30 T1000,30 T1100,30 T1200,30 L1200,30 L0,30 Z" fill="#1A1530"/></svg>
+
+  <div class="sec-head">
+    <div><h2 data-edit>your rooms</h2><div class="sh-tag">tap in — every room is a real tool</div></div>
+    <button class="sec-pill" onclick="sendPrompt('Show me all rooms and tools in poppit')"><i class="ti ti-grid-dots"></i> all tools</button>
+  </div>
+
+  <div class="rooms" id="rooms">
+    <div class="room r-pink" style="animation-delay:.02s" onclick="sendPrompt('Open the Ideation room — brainstorm viral product drop ideas with me')">
+      <div><div class="r-ico"><i class="ti ti-bulb"></i></div><h3 data-edit>Idea Pop</h3><p>Brainstorm drops, hooks & viral concepts</p></div>
+      <span class="r-tag">brainstorm</span>
+    </div>
+    <div class="room r-cream" style="animation-delay:.06s" onclick="sendPrompt('Open the Copy Desk — write and polish all my product copy')">
+      <div><div class="r-ico"><i class="ti ti-pencil"></i></div><h3 data-edit>Copy Desk</h3><p>Write, rewrite & grammar-check every word</p></div>
+      <span class="r-tag">words</span>
+    </div>
+    <div class="room r-blue" style="animation-delay:.1s" onclick="sendPrompt('Open the Design Lab — turn my copy and SKUs into designs')">
+      <div><div class="r-ico"><i class="ti ti-palette"></i></div><h3 data-edit>Design Lab</h3><p>Turn copy & SKUs into scroll-stopping designs</p></div>
+      <span class="r-tag">copy → design</span>
+    </div>
+    <div class="room r-yellow" style="animation-delay:.14s" onclick="sendPrompt('Open SKU Stories — help me organize and tell the story of my products')">
+      <div><div class="r-ico"><i class="ti ti-package"></i></div><h3 data-edit>SKU Stories</h3><p>Organize products & give each one a story</p></div>
+      <span class="r-tag">catalog</span>
+    </div>
+    <div class="room r-mint" style="animation-delay:.18s" onclick="sendPrompt('Open the Wireframe Bench — sketch a landing page layout with me')">
+      <div><div class="r-ico"><i class="ti ti-layout-2"></i></div><h3 data-edit>Wireframe</h3><p>Drag-and-drop landing pages, fast</p></div>
+      <span class="r-tag">build</span>
+    </div>
+    <div class="room r-orange" style="animation-delay:.22s" onclick="sendPrompt('Open the Launch Pad — plan approvals and a launch for my drop')">
+      <div><div class="r-ico"><i class="ti ti-rocket"></i></div><h3 data-edit>Launch Pad</h3><p>Approvals, routing & launch plans</p></div>
+      <span class="r-tag">ship it</span>
+    </div>
+    <div class="room r-purple" style="animation-delay:.26s" onclick="sendPrompt('Open the Academy — recommend a learning path for me')">
+      <div><div class="r-ico"><i class="ti ti-school"></i></div><h3 data-edit>Academy</h3><p>Bite-size lessons with an AI tutor</p></div>
+      <span class="r-tag">learn</span>
+    </div>
+    <div class="room r-lime" style="animation-delay:.3s" onclick="sendPrompt('Open Auto Flows — build a creative workflow automation')">
+      <div><div class="r-ico"><i class="ti ti-bolt"></i></div><h3 data-edit>Auto Flows</h3><p>Automate the boring bits end-to-end</p></div>
+      <span class="r-tag">automate</span>
+    </div>
+    <div class="room r-cream" style="animation-delay:.34s" onclick="sendPrompt('Open the Swipe Vault — show me copy and design inspiration')">
+      <div><div class="r-ico"><i class="ti ti-bookmark"></i></div><h3 data-edit>Swipe Vault</h3><p>Saved refs, templates & swipe files</p></div>
+      <span class="r-tag">inspo</span>
+    </div>
+  </div>
+
+  <div class="aibar">
+    <div class="ai-t"><i class="ti ti-sparkles"></i> <span data-edit>Make it now</span></div>
+    <div class="ai-s" data-edit>Type a product or a SKU — get copy, a design direction, and a drop concept instantly.</div>
+    <div class="ai-row">
+      <input class="ai-in" id="aiIn" placeholder="e.g. ₹199 LED galaxy projector, Gen-Z dorm vibe..." />
+      <button class="ai-send" onclick="aiGo()"><i class="ti ti-arrow-right"></i></button>
+    </div>
+    <div class="ai-chips">
+      <span class="ai-chip" onclick="fillAi('Cute mini phone fan, under $2, summer drop')">mini phone fan</span>
+      <span class="ai-chip" onclick="fillAi('Y2K butterfly hair clips set, viral TikTok angle')">butterfly clips</span>
+      <span class="ai-chip" onclick="fillAi('LED galaxy projector, cozy dorm aesthetic')">galaxy projector</span>
+      <span class="ai-chip" onclick="fillAi('Pastel acrylic nail kit, affordable glow-up')">nail kit</span>
+    </div>
+  </div>
+
+  <div class="sec-head" style="padding-top:8px">
+    <div><h2 data-edit>quick starts</h2><div class="sh-tag">pretty templates, ready to remix</div></div>
+    <button class="sec-pill" onclick="sendPrompt('Show me the full template library in poppit')"><i class="ti ti-stack-2"></i> browse</button>
+  </div>
+  <div class="tpl-row">
+    <div class="tpl" onclick="sendPrompt('Use the product drop template to plan a new launch')">
+      <div class="t-ic" style="background:#FFE3F0"><i class="ti ti-confetti"></i></div><h4 data-edit>Product drop</h4><p>Launch in a day</p>
+    </div>
+    <div class="tpl" onclick="sendPrompt('Use the content calendar template for my socials')">
+      <div class="t-ic" style="background:#E3EEFF"><i class="ti ti-calendar"></i></div><h4 data-edit>Content cal</h4><p>30-day plan</p>
+    </div>
+    <div class="tpl" onclick="sendPrompt('Use the landing page wireframe template')">
+      <div class="t-ic" style="background:#EBFFD6"><i class="ti ti-device-mobile"></i></div><h4 data-edit>Landing page</h4><p>Drag & drop</p>
+    </div>
+    <div class="tpl" onclick="sendPrompt('Use the SKU catalog template to organize products')">
+      <div class="t-ic" style="background:#F0E6FF"><i class="ti ti-tags"></i></div><h4 data-edit>SKU catalog</h4><p>Story per item</p>
+    </div>
+  </div>
+
+  <div class="foot">
+    <h3 data-edit>Ready to pop off?</h3>
+    <button class="f-btn" onclick="sendPrompt('Build a complete product drop for me in poppit — idea, copy, design direction, and launch plan')"><i class="ti ti-rocket"></i> Build a drop</button>
+  </div>
+  <div class="hint"><i class="ti ti-wand"></i> tip: change the font &amp; color up top, or hit Edit to rewrite every word</div>
+</div>
+
+<script>
+(function(){
+  var os=document.getElementById('os');
+  window.setFont=function(f){os.style.setProperty('--display',"'"+f+"'")};
+  window.setAccent=function(el,c){
+    os.style.setProperty('--accent',c);
+    document.querySelectorAll('.dot').forEach(function(d){d.classList.remove('on')});
+    el.classList.add('on');
+  };
+  window.toggleEdit=function(){
+    var on=os.classList.toggle('editing');
+    document.querySelectorAll('[data-edit]').forEach(function(e){e.contentEditable=on});
+    document.getElementById('editBtn').classList.toggle('on',on);
+    document.getElementById('editTxt').textContent=on?'Done':'Edit';
+    if(on){var f=os.querySelector('.hero h1');f&&f.focus()}
+  };
+  window.fillAi=function(t){document.getElementById('aiIn').value=t};
+  window.aiGo=function(){
+    var v=document.getElementById('aiIn').value.trim();
+    if(!v){v='a cheap viral Gen-Z product'}
+    sendPrompt('For this product: '+v+' — give me a drop name, 3 punchy headlines, a TikTok caption, and a visual/design direction.');
+  };
+})();
+</script>

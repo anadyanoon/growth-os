@@ -1,0 +1,761 @@
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+
+// ── THEME ENGINE ──────────────────────────────────────────────────────────────
+const TIMES = {
+  dawn:    { name: "Dawn Mist",     bg: "#F4F7F9", surface: "#FFFFFF", card: "#FAFCFD", border: "#E8EDF2", accent: "#B8A082", gold: "#C9A84C", text: "#2C3340", muted: "#7A8499", faint: "#C8D0DC", gem: "#5A8A6A", risk: "#B05A48", sky: "#8AAFC8", desc: "The day opens. First light through bamboo." },
+  morning: { name: "Morning Light",  bg: "#F8F8F6", surface: "#FFFFFF", card: "#FDFDF9", border: "#EDEAE2", accent: "#C9A84C", gold: "#D4AF37", text: "#28302A", muted: "#7A8070", faint: "#C8C8B8", gem: "#5A8A5A", risk: "#B06048", sky: "#9AB888", desc: "Clarity arrives. The work is clear." },
+  noon:    { name: "High Sun",       bg: "#F9F8F4", surface: "#FFFFFF", card: "#FDFCF8", border: "#EDE8DC", accent: "#C8A040", gold: "#D4AF37", text: "#302818", muted: "#807060", faint: "#CCC0A8", gem: "#607A40", risk: "#A86040", sky: "#B8A870", desc: "Peak intensity. Every decision counts." },
+  sunset:  { name: "Golden Hour",    bg: "#FAF7F2", surface: "#FFFFFF", card: "#FDFAF5", border: "#EDE5D8", accent: "#D4AF37", gold: "#C89040", text: "#302018", muted: "#80705A", faint: "#D0C0A8", gem: "#6A7A40", risk: "#C06840", sky: "#D4A870", desc: "The light turns gold. Momentum compounds." },
+  evening: { name: "Dusk Linen",     bg: "#F7F5F2", surface: "#FEFEFE", card: "#FDFBF8", border: "#E8E2D8", accent: "#B89860", gold: "#C8A040", text: "#2C2820", muted: "#78706A", faint: "#C8C0B0", gem: "#608060", risk: "#B06050", sky: "#A89880", desc: "The day quiets. Lock tomorrow's gate." },
+  night:   { name: "Still Ivory",    bg: "#F5F4F2", surface: "#FEFEFE", card: "#FCFBF9", border: "#E5E0D8", accent: "#A88858", gold: "#B89840", text: "#282420", muted: "#706860", faint: "#C0B8A8", gem: "#5A7858", risk: "#A85848", sky: "#8888A0", desc: "The sanctuary rests. Notes before you close." },
+};
+
+function getTimeKey() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 7) return "dawn";
+  if (h >= 7 && h < 12) return "morning";
+  if (h >= 12 && h < 16) return "noon";
+  if (h >= 16 && h < 20) return "sunset";
+  if (h >= 20 && h < 23) return "evening";
+  return "night";
+}
+
+// ── PERSISTENCE ───────────────────────────────────────────────────────────────
+const LS = {
+  get: (k, fb) => { try { const d = localStorage.getItem(k); return d ? JSON.parse(d) : fb; } catch { return fb; } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+// ── SEED DATA ─────────────────────────────────────────────────────────────────
+const SEED_INSIGHTS = [
+  { id: 1, title: "CRM is the highest-ROI unlock available today", body: "Push, email, and WhatsApp flows exist but no segment briefs are locked. Mass + Affinity + MMA can each be briefed in one page. June peak opens in 3 weeks — this is the single lever with the fastest payback.", tag: "Opportunity", src: "Marketing", editable: true },
+  { id: 2, title: "India assortment is invisible — easy to surface", body: "Wrogn is live (p-419500) but has zero onsite journey. No toggle, no carousel, no CLP. A 30-minute journey sketch with Antra unlocks a full India storefront with existing commercial support.", tag: "Quick Win", src: "Marketing", editable: true },
+  { id: 3, title: "TRYGLOBAL coupon is a live indexing risk", body: "30M+ product exposure. No confirmed Tech ETA. If unresolved before a campaign push, risks corrupting search ranking and inflating coupon spend with zero conversion lift.", tag: "Risk", src: "Marketing", editable: true },
+  { id: 4, title: "3 product features ready to unblock now", body: "View count on thumbnail, automated deals module on HP, and Search Enhancements are all Strategize-stage. Each lifts conversion directly. They need one brief each — not a full sprint.", tag: "Unblock", src: "Product", editable: true },
+  { id: 5, title: "Personalization gap — competitors already ahead", body: "Affinity labels for Toggles and Category Nav are not started. AJIO and Meesho run this today. A BI brief this week puts noon 2 sprints ahead of where it currently stands.", tag: "Watch", src: "Marketing", editable: true },
+  { id: 6, title: "Carousels are leaving discovery wins on the table", body: "Trending Now runs AE+KSA. New Arrivals logic exists but not live. India-origin, Price Drop, and Best Rated carousels are zero-effort additions with meaningful discovery signal.", tag: "Opportunity", src: "Marketing", editable: true },
+];
+
+const SEED_STACK = [
+  { id: 1,  name: "Global Tab — new UX",                    src: "Product",   cat: "Product",   status: "Completed",    owner: "Growth",          priority: "—"  },
+  { id: 2,  name: "PLP personalization refresh",            src: "Product",   cat: "Product",   status: "Completed",    owner: "—",               priority: "—"  },
+  { id: 3,  name: "Tags on PLP/PDP — dynamic thumbnails",  src: "Product",   cat: "Product",   status: "Completed",    owner: "—",               priority: "—"  },
+  { id: 4,  name: "View count on thumbnail (Flicker)",      src: "Product",   cat: "Product",   status: "Not started",  owner: "Saumya",          priority: "P1" },
+  { id: 5,  name: "Gamification — Spin the Wheel",          src: "Product",   cat: "Product",   status: "Not started",  owner: "—",               priority: "P1" },
+  { id: 6,  name: "Automated deals module on HP",           src: "Product",   cat: "Product",   status: "Not started",  owner: "—",               priority: "P1" },
+  { id: 7,  name: "Fulfillment buybox fix",                 src: "Product",   cat: "Product",   status: "Completed",    owner: "—",               priority: "—"  },
+  { id: 8,  name: "Category Automations",                   src: "Product",   cat: "CMS",       status: "Completed",    owner: "—",               priority: "—"  },
+  { id: 9,  name: "CLP Updates",                            src: "Product",   cat: "CMS",       status: "Completed",    owner: "—",               priority: "—"  },
+  { id: 10, name: "Infinite scroll on PLP widget",          src: "Product",   cat: "CMS",       status: "Completed",    owner: "Onsite/CMS",      priority: "—"  },
+  { id: 11, name: "Category Nav enhancement V1",            src: "Product",   cat: "CMS",       status: "Completed",    owner: "Onsite/CMS",      priority: "—"  },
+  { id: 12, name: "Search Enhancements",                    src: "Product",   cat: "Product",   status: "Not started",  owner: "—",               priority: "P2" },
+  { id: 13, name: "CRM — Push Notifications",               src: "Marketing", cat: "CRM",       status: "In progress",  owner: "CRM",             priority: "P0" },
+  { id: 14, name: "CRM — Emailers",                         src: "Marketing", cat: "CRM",       status: "In progress",  owner: "CRM",             priority: "P0" },
+  { id: 15, name: "CRM — WhatsApp",                         src: "Marketing", cat: "CRM",       status: "Not started",  owner: "CRM",             priority: "P1" },
+  { id: 16, name: "CRM — Mass + Affinity + MMA",            src: "Marketing", cat: "CRM",       status: "In progress",  owner: "—",               priority: "P0" },
+  { id: 17, name: "Carousels on PDP",                       src: "Marketing", cat: "Product",   status: "In progress",  owner: "Product",         priority: "P1" },
+  { id: 18, name: "Carousels on Cart",                      src: "Marketing", cat: "Product",   status: "In progress",  owner: "Product",         priority: "P1" },
+  { id: 19, name: "Surprise Me button",                     src: "Marketing", cat: "Product",   status: "Not started",  owner: "Product/Design",  priority: "P2" },
+  { id: 20, name: "Monthly social content calendar",        src: "Marketing", cat: "Social",    status: "Not started",  owner: "Design",          priority: "P2" },
+  { id: 21, name: "Onsite cross-MP visibility",             src: "Marketing", cat: "xMP",       status: "In progress",  owner: "xMP",             priority: "P1" },
+  { id: 22, name: "Affiliate program — CPO global",         src: "Marketing", cat: "Affiliate", status: "Not started",  owner: "Harshul",         priority: "P2" },
+  { id: 23, name: "Core HP takeover plan",                  src: "Marketing", cat: "Onsite",    status: "In progress",  owner: "—",               priority: "P0" },
+  { id: 24, name: "India assortment push",                  src: "Marketing", cat: "Onsite",    status: "Not started",  owner: "Anadya/Tamara",   priority: "P1" },
+  { id: 25, name: "Personalization — affinity labels",      src: "Marketing", cat: "Product",   status: "Not started",  owner: "Tamara/Anadya",   priority: "P1" },
+  { id: 26, name: "TRYGLOBAL coupon — indexing fix",        src: "Marketing", cat: "Tech",      status: "Blocked",      owner: "Tech",            priority: "P0" },
+  { id: 27, name: "STW — Spin the Wheel",                   src: "Marketing", cat: "Onsite",    status: "In progress",  owner: "Tamara",          priority: "P0" },
+  { id: 28, name: "Freebies — Global Finds Box",            src: "Marketing", cat: "Onsite",    status: "Not started",  owner: "Onsite/Comm",     priority: "P2" },
+  { id: 29, name: "Locker branding — 370+ screens",         src: "Marketing", cat: "BTL",       status: "Deprioritized",owner: "BTL",             priority: "—"  },
+  { id: 30, name: "ATL — From the World to You",            src: "Marketing", cat: "ATL",       status: "Deprioritized",owner: "Ravi/Rahul",      priority: "—"  },
+];
+
+const SEED_PROJECTS = [
+  { id: 1, name: "Global Marketplace Relaunch", phase: "Soft Launch",  pct: 72, status: "live",        deadline: "2026-03-01", owner: "Tamara/Anadya" },
+  { id: 2, name: "CRM Automation Engine",       phase: "Briefing",     pct: 20, status: "in-progress", deadline: "2026-06-01", owner: "CRM team"      },
+  { id: 3, name: "India Assortment Journey",    phase: "Not started",  pct: 0,  status: "at-risk",     deadline: "2026-05-25", owner: "Anadya/Antra"  },
+  { id: 4, name: "HP Takeover Campaign",        phase: "Execution",    pct: 60, status: "in-progress", deadline: "2026-04-15", owner: "—"             },
+  { id: 5, name: "Personalization Labels",      phase: "Strategize",   pct: 10, status: "at-risk",     deadline: "2026-05-30", owner: "Tamara/BI"     },
+];
+
+const ORACLE_HYPOTHESES = {
+  "competitor": "Strategic Hypothesis: If a key competitor drops prices by 10% in UAE, noon Global's price-perception gap widens. Recommended counter: activate 'Under 20 AED' collection touchpoints, push Price Drop carousel, and brief CRM on a targeted price-match segment for high-intent users.",
+  "carm": "Strategic Hypothesis: CRM engagement data suggests Mass + Affinity segments can lift repeat purchase rate by 12-18% based on noon's 2025 Ramadan campaign benchmarks. MMA channel adds incremental reach without cannibalizing email.",
+  "india": "Strategic Hypothesis: India assortment currently has zero onsite discovery surface. Based on 2026 seller data (407K+ partner IDs), activating a 3-touchpoint journey (toggle → carousel → CLP) could surface 400+ new SKUs within 2 weeks with zero additional sourcing cost.",
+  "default": "Strategic Hypothesis: Based on noon's 2026 Global marketplace position — 2 markets live, 13 product features shipped, CRM and personalization in flight — the highest-leverage move is CRM segment brief completion. All other initiatives are unblocked by this single document.",
+};
+
+function getOracle(q) {
+  const ql = q.toLowerCase();
+  if (ql.includes("competitor") || ql.includes("price") || ql.includes("drop")) return ORACLE_HYPOTHESES.competitor;
+  if (ql.includes("crm") || ql.includes("email") || ql.includes("push")) return ORACLE_HYPOTHESES.carm;
+  if (ql.includes("india") || ql.includes("assortment") || ql.includes("wrogn")) return ORACLE_HYPOTHESES.india;
+  return ORACLE_HYPOTHESES.default;
+}
+
+// ── AMBIENT SOUND ─────────────────────────────────────────────────────────────
+function useAmbience(themeKey, enabled) {
+  const ctxRef = useRef(null);
+  const nodesRef = useRef([]);
+
+  const stop = useCallback(() => {
+    nodesRef.current.forEach(n => { try { n.stop(); } catch {} });
+    nodesRef.current = [];
+  }, []);
+
+  const play = useCallback((key) => {
+    stop();
+    if (!enabled) return;
+    try {
+      const ctx = ctxRef.current || (ctxRef.current = new (window.AudioContext || window.webkitAudioContext)());
+      const master = ctx.createGain();
+      master.gain.value = 0.035;
+      master.connect(ctx.destination);
+
+      const osc = (freq, type, amp, det = 0) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = type; o.frequency.value = freq; o.detune.value = det;
+        g.gain.value = amp;
+        o.connect(g); g.connect(master); o.start();
+        nodesRef.current.push(o);
+      };
+
+      const lfo = (freq, depth) => {
+        const l = ctx.createOscillator(), lg = ctx.createGain();
+        l.frequency.value = freq; lg.gain.value = depth;
+        l.connect(lg); lg.connect(master.gain); l.start();
+        nodesRef.current.push(l);
+      };
+
+      if (key === "dawn" || key === "morning") {
+        [196, 220, 261.63, 329.63, 392].forEach((f, i) => osc(f, "sine", 0.12 - i * 0.018, i * 3 - 6));
+        osc(65.4, "sine", 0.3); lfo(0.08, 0.012);
+      } else if (key === "noon") {
+        [220, 277.18, 329.63, 440].forEach((f, i) => osc(f, "sine", 0.1 - i * 0.015, i * 5));
+        osc(110, "sine", 0.25); lfo(0.12, 0.01);
+      } else if (key === "sunset") {
+        [174.61, 220, 261.63, 349.23].forEach((f, i) => osc(f, "sine", 0.11 - i * 0.016, i * 4));
+        osc(87.3, "sine", 0.28); lfo(0.06, 0.014);
+      } else {
+        [130.81, 164.81, 196, 261.63].forEach((f, i) => osc(f, "sine", 0.1 - i * 0.015, i * 3));
+        osc(65.4, "sine", 0.32); lfo(0.05, 0.01);
+      }
+    } catch {}
+  }, [enabled, stop]);
+
+  useEffect(() => { if (enabled) play(themeKey); else stop(); }, [enabled, themeKey, play, stop]);
+}
+
+// ── BAMBOO BACKGROUND ─────────────────────────────────────────────────────────
+function BambooBg({ t }) {
+  const stems = useMemo(() => Array.from({ length: 11 }, (_, i) => ({
+    id: i, x: i * 9 + 2, h: 55 + (i % 3) * 18, delay: i * 0.35, dur: 5 + (i % 4),
+    w: 1.5 + (i % 2) * 0.8, segs: 3 + (i % 3),
+  })), []);
+
+  return (
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden", opacity: 0.22 }}>
+      <style>{`
+        @keyframes bamboosway{0%,100%{transform:rotate(-1.5deg) scaleY(1)}50%{transform:rotate(1.5deg) scaleY(1.015)}}
+        @keyframes leafdrift{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(5deg)}}
+        @keyframes mist{0%,100%{opacity:0.4}50%{opacity:0.7}}
+        @keyframes goldray{0%,100%{opacity:0.06}50%{opacity:0.14}}
+      `}</style>
+      {stems.map(s => (
+        <div key={s.id} style={{ position: "absolute", bottom: 0, left: `${s.x}%`, width: s.w, height: `${s.h}%`, display: "flex", flexDirection: "column", animation: `bamboosway ${s.dur}s ${s.delay}s ease-in-out infinite`, transformOrigin: "bottom center" }}>
+          {Array.from({ length: s.segs }, (_, j) => (
+            <div key={j} style={{ flex: 1, background: t.accent, borderBottom: `1.5px solid ${t.border}`, opacity: 0.6 + j * 0.1 }} />
+          ))}
+          <div style={{ position: "absolute", right: -14, top: "30%", width: 28, height: 7, background: t.accent, borderRadius: "0 50% 50% 0", opacity: 0.5, animation: `leafdrift ${s.dur + 1}s ${s.delay + 0.5}s ease-in-out infinite`, transformOrigin: "left center" }} />
+          <div style={{ position: "absolute", left: -18, top: "60%", width: 22, height: 6, background: t.accent, borderRadius: "50% 0 0 50%", opacity: 0.4, animation: `leafdrift ${s.dur + 0.8}s ${s.delay + 1}s ease-in-out infinite`, transformOrigin: "right center" }} />
+        </div>
+      ))}
+      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse 60% 40% at 70% 20%, ${t.gold}22 0%, transparent 70%)`, animation: "goldray 8s ease-in-out infinite" }} />
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "30%", background: `linear-gradient(to top, ${t.bg}CC, transparent)` }} />
+    </div>
+  );
+}
+
+// ── SMALL COMPONENTS ──────────────────────────────────────────────────────────
+function Pill({ children, active, color, onClick, style }) {
+  return (
+    <span onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, padding: "3px 10px", borderRadius: 12, cursor: onClick ? "pointer" : "default", fontWeight: active ? 600 : 400, border: `0.5px solid ${active ? color : "#D0C8B8"}`, background: active ? color + "18" : "transparent", color: active ? color : "#8A8070", transition: "all 0.15s", ...style }}>
+      {children}
+    </span>
+  );
+}
+
+function StatusBadge({ status, t }) {
+  const map = {
+    "Completed":    { c: t.gem },
+    "In progress":  { c: t.accent },
+    "Not started":  { c: t.muted },
+    "Blocked":      { c: t.risk },
+    "Deprioritized":{ c: t.faint },
+    "live":         { c: t.gem },
+    "in-progress":  { c: t.accent },
+    "at-risk":      { c: t.risk },
+  };
+  const { c } = map[status] || { c: t.muted };
+  return <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, background: c + "18", color: c, border: `0.5px solid ${c}40`, fontWeight: 500, whiteSpace: "nowrap" }}>{status}</span>;
+}
+
+function InlineEdit({ value, onChange, multiline, style, placeholder }) {
+  const [editing, setEditing] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => { if (editing && ref.current) ref.current.focus(); }, [editing]);
+  const base = { ...style, cursor: "text", outline: "none", fontFamily: "inherit", fontSize: "inherit", background: editing ? "rgba(0,0,0,0.03)" : "transparent", border: editing ? "0.5px solid #D4AF3760" : "none", borderBottom: !editing ? "0.5px dashed #D4AF3750" : "none", borderRadius: 3, padding: editing ? "2px 4px" : "0 0 1px 0", color: "inherit", width: "100%", resize: multiline ? "vertical" : "none" };
+  if (!editing) return <span onClick={() => setEditing(true)} title="Click to edit" style={base}>{value || <span style={{ color: "#C0B8A8" }}>{placeholder}</span>}</span>;
+  if (multiline) return <textarea ref={ref} value={value} rows={3} onChange={e => onChange(e.target.value)} onBlur={() => setEditing(false)} style={base} />;
+  return <input ref={ref} value={value} onChange={e => onChange(e.target.value)} onBlur={() => setEditing(false)} style={base} />;
+}
+
+function ProgressArc({ pct, color, size = 64 }) {
+  const r = 26, c = 32, circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64">
+      <circle cx={c} cy={c} r={r} fill="none" stroke="#EAE5DC" strokeWidth="6" />
+      <circle cx={c} cy={c} r={r} fill="none" stroke={color} strokeWidth="6" strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={circ * 0.25} strokeLinecap="round" style={{ transition: "stroke-dasharray 0.8s ease" }} />
+      <text x={c} y={c + 4} textAnchor="middle" fontSize="11" fill={color} fontWeight="600">{pct}%</text>
+    </svg>
+  );
+}
+
+// ── APP ───────────────────────────────────────────────────────────────────────
+export default function App() {
+  const [themeKey, setThemeKey] = useState(getTimeKey);
+  const t = TIMES[themeKey];
+
+  const [tab, setTab] = useState("command");
+  const [soundOn, setSoundOn] = useState(false);
+  const [nowStr, setNowStr] = useState("");
+
+  const [insights, setInsights] = useState(() => LS.get("snc_insights", SEED_INSIGHTS));
+  const [stack, setStack] = useState(() => LS.get("snc_stack", SEED_STACK));
+  const [projects, setProjects] = useState(() => LS.get("snc_projects", SEED_PROJECTS));
+  const [notes, setNotes] = useState(() => LS.get("snc_notes", ""));
+  const [gchat, setGchat] = useState(() => LS.get("snc_gchat", "noon Global Tab is live and dominant across UAE + KSA — HP takeover executing, CRM engine launching across Mass, Affinity, and MMA. Two gates before June peak: India assortment journey and TRYGLOBAL indexing resolution — both are this week's mandate."));
+
+  const [srcF, setSrcF] = useState("all");
+  const [stF, setStF] = useState("all");
+  const [editIns, setEditIns] = useState(null);
+  const [addingRow, setAddingRow] = useState(false);
+  const [newRow, setNewRow] = useState({ name: "", src: "Marketing", cat: "Onsite", status: "Not started", owner: "", priority: "P1" });
+  const [addingProj, setAddingProj] = useState(false);
+  const [newProj, setNewProj] = useState({ name: "", phase: "Planning", pct: 0, status: "in-progress", deadline: "", owner: "" });
+  const [oracleQ, setOracleQ] = useState("");
+  const [oracleA, setOracleA] = useState("");
+  const [oracleLoading, setOracleLoading] = useState(false);
+  const [backupCode, setBackupCode] = useState("");
+  const [copied, setCopied] = useState("");
+  const [gsLink, setGsLink] = useState(() => LS.get("snc_gslink", ""));
+
+  useAmbience(themeKey, soundOn);
+
+  useEffect(() => {
+    const tick = () => {
+      setNowStr(new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" }));
+      setThemeKey(getTimeKey());
+    };
+    tick();
+    const id = setInterval(tick, 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => { LS.set("snc_insights", insights); }, [insights]);
+  useEffect(() => { LS.set("snc_stack", stack); }, [stack]);
+  useEffect(() => { LS.set("snc_projects", projects); }, [projects]);
+  useEffect(() => { LS.set("snc_notes", notes); }, [notes]);
+  useEffect(() => { LS.set("snc_gchat", gchat); }, [gchat]);
+  useEffect(() => { LS.set("snc_gslink", gsLink); }, [gsLink]);
+
+  const completed = stack.filter(r => r.status === "Completed").length;
+  const inProg = stack.filter(r => r.status === "In progress").length;
+  const blocked = stack.filter(r => r.status === "Blocked").length;
+  const p0count = stack.filter(r => r.priority === "P0").length;
+  const gems = stack.filter(r => r.status === "Completed").slice(0, 5);
+  const bleeders = stack.filter(r => r.status === "Blocked" || (r.priority === "P0" && r.status === "Not started")).slice(0, 5);
+
+  const filteredStack = stack.filter(r =>
+    (srcF === "all" || r.src === srcF) &&
+    (stF === "all" || r.status === stF)
+  );
+
+  const updIns = (id, f, v) => setInsights(p => p.map(i => i.id === id ? { ...i, [f]: v } : i));
+  const updStack = (id, f, v) => setStack(p => p.map(r => r.id === id ? { ...r, [f]: v } : r));
+  const updProj = (id, f, v) => setProjects(p => p.map(x => x.id === id ? { ...x, [f]: v } : x));
+
+  const askOracle = useCallback(async () => {
+    if (!oracleQ.trim()) return;
+    setOracleLoading(true);
+    setOracleA("");
+    await new Promise(r => setTimeout(r, 900));
+    const hypothesis = getOracle(oracleQ);
+    const dataLine = `Data in view: ${stack.length} initiatives · ${completed} completed · ${inProg} in progress · ${blocked} blocked · ${projects.length} active projects.`;
+    setOracleA(`${dataLine}\n\n${hypothesis}`);
+    setOracleLoading(false);
+  }, [oracleQ, stack, completed, inProg, blocked, projects]);
+
+  const generateBackup = () => {
+    const payload = { insights, stack, projects, notes, gchat, themeKey, gsLink, ts: Date.now() };
+    setBackupCode("SNCK::" + btoa(unescape(encodeURIComponent(JSON.stringify(payload)))));
+  };
+
+  const copyText = (text, key) => {
+    navigator.clipboard.writeText(text).catch(() => {});
+    setCopied(key);
+    setTimeout(() => setCopied(""), 2000);
+  };
+
+  // ── STYLE HELPERS ──────────────────────────────────────────────────────────
+  const css = {
+    shell: { background: t.bg, minHeight: "100vh", fontFamily: "'Georgia', 'Times New Roman', serif", color: t.text, position: "relative", fontSize: 13, lineHeight: 1.6 },
+    header: { background: t.surface + "F8", borderBottom: `0.5px solid ${t.border}`, padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", backdropFilter: "blur(8px)", position: "relative", zIndex: 2 },
+    nav: { background: t.surface + "F0", borderBottom: `0.5px solid ${t.border}`, padding: "0 24px", display: "flex", gap: 0, position: "relative", zIndex: 2 },
+    navTab: (on) => ({ padding: "10px 16px", fontSize: 11, color: on ? t.gold : t.muted, cursor: "pointer", borderBottom: on ? `2px solid ${t.gold}` : "2px solid transparent", letterSpacing: 0.4, transition: "all 0.2s", fontFamily: "Georgia, serif", background: on ? t.gold + "08" : "transparent", fontWeight: on ? 600 : 400 }),
+    body: { padding: "20px 24px", position: "relative", zIndex: 1 },
+    card: { background: t.card, border: `0.5px solid ${t.border}`, borderRadius: 12, padding: "16px 18px", marginBottom: 14 },
+    cardTitle: { fontSize: 10, fontWeight: 600, color: t.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 },
+    kpiGrid: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 14 },
+    kpi: { background: t.surface, border: `0.5px solid ${t.border}`, borderRadius: 10, padding: "13px 16px" },
+    kpiL: { fontSize: 10, color: t.muted, textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 5 },
+    kpiV: { fontSize: 26, fontWeight: 600, lineHeight: 1, fontFamily: "Georgia, serif" },
+    kpiN: { fontSize: 10, marginTop: 4, color: t.muted },
+    row2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 },
+    insGrid: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 14 },
+    insCard: (active) => ({ background: t.card, border: `0.5px solid ${active ? t.gold : t.border}`, borderRadius: 10, padding: 14, cursor: "pointer", transition: "border-color 0.2s" }),
+    tagColors: { "Opportunity": t.gem, "Quick Win": t.gold, "Risk": t.risk, "Unblock": t.accent, "Watch": t.sky },
+    input: { width: "100%", fontSize: 12, border: `0.5px solid ${t.border}`, borderRadius: 7, padding: "7px 10px", background: t.surface, color: t.text, fontFamily: "Georgia, serif", outline: "none" },
+    textarea: { width: "100%", fontSize: 12, border: `0.5px solid ${t.border}`, borderRadius: 7, padding: "8px 12px", background: t.surface, color: t.text, fontFamily: "Georgia, serif", outline: "none", resize: "vertical", lineHeight: 1.55 },
+    select: { fontSize: 11, border: `0.5px solid ${t.border}`, borderRadius: 6, padding: "4px 8px", background: t.surface, color: t.text, cursor: "pointer" },
+    btnGold: { fontSize: 11, padding: "7px 18px", background: t.gold, color: "#FFFFFF", border: "none", borderRadius: 12, cursor: "pointer", fontWeight: 600, fontFamily: "Georgia, serif", letterSpacing: 0.3 },
+    btnOut: { fontSize: 11, padding: "6px 14px", background: "transparent", color: t.muted, border: `0.5px solid ${t.border}`, borderRadius: 12, cursor: "pointer" },
+    tblH: { fontSize: 10, textTransform: "uppercase", letterSpacing: 0.7, color: t.muted, padding: "8px 12px", textAlign: "left", fontWeight: 600, borderBottom: `0.5px solid ${t.border}`, background: t.surface },
+    tblD: { fontSize: 11, padding: "9px 12px", borderBottom: `0.5px solid ${t.border}`, color: t.text, verticalAlign: "top" },
+    mono: { fontFamily: "monospace", fontSize: 10, background: t.surface, border: `0.5px solid ${t.border}`, borderRadius: 6, padding: "10px 12px", color: t.muted, lineHeight: 1.6, wordBreak: "break-all", whiteSpace: "pre-wrap" },
+  };
+
+  const TAG_COLORS = css.tagColors;
+
+  const TABS = [
+    { key: "command",  label: "Command" },
+    { key: "oracle",   label: "Oracle" },
+    { key: "projects", label: "Projects" },
+    { key: "stack",    label: "Data Stack" },
+    { key: "comms",    label: "Comms" },
+  ];
+
+  return (
+    <div style={css.shell}>
+      <BambooBg t={t} />
+
+      {/* ── HEADER ─────────────────────────────────────────────────────────── */}
+      <div style={css.header}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 9, background: t.gold + "20", border: `0.5px solid ${t.gold}40`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, color: t.gold, fontFamily: "Georgia, serif" }}>n</div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: t.text, letterSpacing: -0.3 }}>noon Global · Sanctuary</div>
+            <div style={{ fontSize: 10, color: t.muted, letterSpacing: 1.2, textTransform: "uppercase" }}>{t.name} · {nowStr} IST · {t.desc}</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {Object.entries(TIMES).map(([k, th]) => (
+            <div key={k} onClick={() => setThemeKey(k)} title={th.name} style={{ width: 13, height: 13, borderRadius: "50%", background: th.gold, border: themeKey === k ? `2px solid ${t.text}` : "2px solid transparent", cursor: "pointer", opacity: themeKey === k ? 1 : 0.55, transition: "all 0.15s" }} />
+          ))}
+          <div onClick={() => setSoundOn(s => !s)} style={{ marginLeft: 8, display: "flex", alignItems: "center", gap: 6, fontSize: 10, padding: "4px 12px", borderRadius: 14, border: `0.5px solid ${t.border}`, color: t.muted, cursor: "pointer", background: soundOn ? t.gold + "15" : "transparent" }}>
+            <span style={{ fontSize: 13 }}>{soundOn ? "♪" : "♩"}</span>{soundOn ? "Nature on" : "Nature off"}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, padding: "4px 12px", borderRadius: 14, border: `0.5px solid ${t.border}`, color: t.muted }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.gem, display: "inline-block", animation: "pulse 2.5s ease-in-out infinite" }} />
+            Auto-sync
+          </div>
+        </div>
+        <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}} tr:hover td{background:${t.surface}!important} input:focus,textarea:focus,select:focus{outline:none;border-color:${t.gold}!important}`}</style>
+      </div>
+
+      {/* ── NAV ────────────────────────────────────────────────────────────── */}
+      <div style={css.nav}>
+        {TABS.map(tb => (
+          <div key={tb.key} style={css.navTab(tab === tb.key)} onClick={() => setTab(tb.key)}>{tb.label}</div>
+        ))}
+      </div>
+
+      <div style={css.body}>
+
+        {/* ── COMMAND ──────────────────────────────────────────────────────── */}
+        {tab === "command" && (<>
+          <div style={css.kpiGrid}>
+            {[
+              { label: "Total initiatives", val: stack.length, note: `${inProg} in motion`, c: t.accent },
+              { label: "P0 tasks", val: p0count, note: "Act today", c: t.risk },
+              { label: "Shipped", val: completed, note: "Features live", c: t.gem },
+              { label: "Blocked", val: blocked, note: "Needs unblocking", c: t.gold },
+            ].map((k, i) => (
+              <div key={i} style={css.kpi}>
+                <div style={css.kpiL}>{k.label}</div>
+                <div style={{ ...css.kpiV, color: k.c }}>{k.val}</div>
+                <div style={{ ...css.kpiN, color: k.c }}>{k.note}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={css.row2}>
+            <div style={{ ...css.card, borderLeft: `2px solid ${t.gem}` }}>
+              <div style={css.cardTitle}>Gems — high conversion, move fast</div>
+              {gems.map((g, i) => (
+                <div key={i} style={{ fontSize: 12, color: t.text, padding: "5px 0", borderBottom: `0.5px solid ${t.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: t.gem, flexShrink: 0 }} />
+                  <InlineEdit value={g.name} onChange={v => updStack(g.id, "name", v)} style={{ color: t.text, fontSize: 12 }} />
+                </div>
+              ))}
+            </div>
+            <div style={{ ...css.card, borderLeft: `2px solid ${t.risk}` }}>
+              <div style={css.cardTitle}>Bleeders — fix or kill</div>
+              {bleeders.length === 0 ? <div style={{ fontSize: 12, color: t.muted }}>No active bleeders — strong position.</div> : bleeders.map((b, i) => (
+                <div key={i} style={{ fontSize: 12, color: t.text, padding: "5px 0", borderBottom: `0.5px solid ${t.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: t.risk, flexShrink: 0 }} />
+                  <InlineEdit value={b.name} onChange={v => updStack(b.id, "name", v)} style={{ color: t.text, fontSize: 12 }} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ fontSize: 10, color: t.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+            Intelligence Lounge
+            <span style={{ color: t.gold, fontWeight: 400, letterSpacing: 0 }}>· click any card to edit</span>
+            <button onClick={() => setInsights(p => [...p, { id: Date.now(), title: "New insight", body: "Click to edit this insight with your own strategic read.", tag: "Watch", src: "Marketing", editable: true }])} style={{ ...css.btnOut, fontSize: 9, padding: "2px 8px", marginLeft: "auto" }}>+ Add insight</button>
+          </div>
+          <div style={css.insGrid}>
+            {insights.map(ins => {
+              const tagC = TAG_COLORS[ins.tag] || t.muted;
+              return (
+                <div key={ins.id} style={css.insCard(editIns === ins.id)} onClick={() => setEditIns(editIns === ins.id ? null : ins.id)}>
+                  {editIns === ins.id ? (
+                    <div onClick={e => e.stopPropagation()}>
+                      <input value={ins.title} onChange={e => updIns(ins.id, "title", e.target.value)} style={{ ...css.input, marginBottom: 6, fontWeight: 600, fontSize: 12 }} />
+                      <textarea value={ins.body} onChange={e => updIns(ins.id, "body", e.target.value)} rows={4} style={{ ...css.textarea, fontSize: 11, marginBottom: 6 }} />
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <select value={ins.tag} onChange={e => updIns(ins.id, "tag", e.target.value)} style={css.select}>
+                          {Object.keys(TAG_COLORS).map(tg => <option key={tg}>{tg}</option>)}
+                        </select>
+                        <button onClick={() => setEditIns(null)} style={css.btnGold}>Done</button>
+                        <button onClick={() => { setInsights(p => p.filter(i => i.id !== ins.id)); setEditIns(null); }} style={{ ...css.btnOut, color: t.risk, fontSize: 10 }}>Remove</button>
+                      </div>
+                    </div>
+                  ) : (<>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: t.text, marginBottom: 5, lineHeight: 1.35, fontFamily: "Georgia, serif" }}>{ins.title}</div>
+                    <div style={{ fontSize: 11, color: t.muted, lineHeight: 1.55 }}>{ins.body}</div>
+                    <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 8, background: tagC + "18", color: tagC, border: `0.5px solid ${tagC}40`, marginTop: 8, display: "inline-block" }}>{ins.tag}</span>
+                  </>)}
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={css.card}>
+            <div style={css.cardTitle}>Strategic moves — this week</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+              {[
+                { title: "Lock CRM segment brief", body: "Mass + Affinity + MMA — one doc, one owner, one deadline. June peak opens in 3 weeks.", c: t.gem },
+                { title: "Get TRYGLOBAL ETA", body: "One Slack to Tech. Five words. Pin the date. If ETA > 5 days, pause all campaigns referencing this coupon.", c: t.risk },
+                { title: "Map India assortment journey", body: "Toggle → Carousel → CLP. Brief Antra on Wrogn + 3 priority brands. 30-minute sprint maximum.", c: t.gold },
+              ].map((m, i) => (
+                <div key={i} style={{ borderTop: `2px solid ${m.c}`, paddingTop: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: m.c, marginBottom: 4, fontFamily: "Georgia, serif" }}>{m.title}</div>
+                  <div style={{ fontSize: 11, color: t.muted, lineHeight: 1.5 }}>{m.body}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>)}
+
+        {/* ── ORACLE ───────────────────────────────────────────────────────── */}
+        {tab === "oracle" && (<>
+          <div style={css.card}>
+            <div style={css.cardTitle}>Oracle — ask any strategic question</div>
+            <div style={{ fontSize: 12, color: t.muted, marginBottom: 10, lineHeight: 1.55 }}>
+              The Oracle reads your live data first. If data exists, it builds a data-backed answer. If data is missing, it returns a Strategic Hypothesis grounded in noon's 2026 market position. Try: "What if competitor drops prices 10%?" or "India assortment status?"
+            </div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <input value={oracleQ} onChange={e => setOracleQ(e.target.value)} onKeyDown={e => e.key === "Enter" && askOracle()} placeholder="Ask a strategic question about your data..." style={{ ...css.input, flex: 1 }} />
+              <button onClick={askOracle} style={css.btnGold} disabled={oracleLoading}>{oracleLoading ? "Thinking..." : "Ask Oracle"}</button>
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+              {["What is the India assortment risk?", "Which CRM lever moves fastest?", "If competitor drops prices 10%?", "What are the top 3 P0 actions?"].map(q => (
+                <Pill key={q} color={t.gold} onClick={() => { setOracleQ(q); }}>{q}</Pill>
+              ))}
+            </div>
+            {oracleA && (
+              <div style={{ background: t.gold + "0C", border: `0.5px solid ${t.gold}30`, borderRadius: 8, padding: "14px 16px" }}>
+                <div style={{ fontSize: 10, color: t.gold, textTransform: "uppercase", letterSpacing: 0.9, marginBottom: 8, fontWeight: 600 }}>Oracle response</div>
+                <div style={{ fontSize: 12, color: t.text, lineHeight: 1.65, whiteSpace: "pre-wrap" }}>{oracleA}</div>
+                <button onClick={() => sendPrompt(`Strategic deep dive: ${oracleQ}`)} style={{ ...css.btnOut, marginTop: 10, fontSize: 10 }}>Go deeper with AI ↗</button>
+              </div>
+            )}
+          </div>
+
+          <div style={css.row2}>
+            <div style={css.card}>
+              <div style={css.cardTitle}>Live data snapshot</div>
+              {[
+                { label: "Total initiatives", val: stack.length, c: t.accent },
+                { label: "Completed", val: completed, c: t.gem },
+                { label: "In progress", val: inProg, c: t.gold },
+                { label: "Blocked", val: blocked, c: t.risk },
+                { label: "P0 tasks open", val: p0count, c: t.risk },
+                { label: "Active projects", val: projects.length, c: t.accent },
+              ].map((r, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `0.5px solid ${t.border}`, fontSize: 12 }}>
+                  <span style={{ color: t.muted }}>{r.label}</span>
+                  <span style={{ fontWeight: 600, color: r.c }}>{r.val}</span>
+                </div>
+              ))}
+            </div>
+            <div style={css.card}>
+              <div style={css.cardTitle}>Strategic hypotheses — always ready</div>
+              {[
+                { q: "Competitor price drop", a: "Activate 'Under 20 AED' collection + Price Drop carousel immediately." },
+                { q: "CRM fastest lever", a: "Mass segment brief is the single document that unlocks June peak reach." },
+                { q: "India assortment", a: "Zero discovery surface. Toggle + Carousel + CLP in one 30-min sprint." },
+                { q: "Personalization gap", a: "Affinity labels 2 sprints away — AJIO already running this today." },
+              ].map((h, i) => (
+                <div key={i} style={{ padding: "8px 0", borderBottom: `0.5px solid ${t.border}` }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: t.text, marginBottom: 2 }}>{h.q}</div>
+                  <div style={{ fontSize: 11, color: t.muted, lineHeight: 1.45 }}>{h.a}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>)}
+
+        {/* ── PROJECTS ─────────────────────────────────────────────────────── */}
+        {tab === "projects" && (<>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ fontSize: 10, color: t.muted, textTransform: "uppercase", letterSpacing: 0.9 }}>Portfolio tracker · click any field to edit inline</div>
+            <button style={css.btnGold} onClick={() => setAddingProj(true)}>+ Add project</button>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 14 }}>
+            {projects.map(p => {
+              const c = p.status === "live" ? t.gem : p.status === "at-risk" ? t.risk : t.accent;
+              return (
+                <div key={p.id} style={css.card}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, gap: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <InlineEdit value={p.name} onChange={v => updProj(p.id, "name", v)} style={{ fontSize: 13, fontWeight: 600, color: t.text, fontFamily: "Georgia, serif" }} />
+                    </div>
+                    <StatusBadge status={p.status} t={t} />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 10, color: t.muted }}>Phase:</span>
+                    <InlineEdit value={p.phase} onChange={v => updProj(p.id, "phase", v)} style={{ fontSize: 11, color: t.muted }} placeholder="Phase" />
+                    <span style={{ fontSize: 10, color: t.faint }}>·</span>
+                    <span style={{ fontSize: 10, color: t.muted }}>Owner:</span>
+                    <InlineEdit value={p.owner} onChange={v => updProj(p.id, "owner", v)} style={{ fontSize: 11, color: t.muted }} placeholder="—" />
+                    <span style={{ fontSize: 10, color: t.faint }}>·</span>
+                    <span style={{ fontSize: 10, color: t.muted }}>Deadline:</span>
+                    <InlineEdit value={p.deadline} onChange={v => updProj(p.id, "deadline", v)} style={{ fontSize: 11, color: t.muted }} placeholder="YYYY-MM-DD" />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <ProgressArc pct={p.pct} color={c} size={60} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, color: t.muted }}>Progress:</span>
+                        <InlineEdit value={String(p.pct)} onChange={v => updProj(p.id, "pct", Math.min(100, Math.max(0, parseInt(v) || 0)))} style={{ fontSize: 11, color: c, fontWeight: 600 }} />
+                        <span style={{ fontSize: 11, color: t.muted }}>%</span>
+                      </div>
+                      <div style={{ height: 4, borderRadius: 2, background: t.border + "80", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${p.pct}%`, background: c, borderRadius: 2, transition: "width 0.6s ease" }} />
+                      </div>
+                      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                        <select value={p.status} onChange={e => updProj(p.id, "status", e.target.value)} style={css.select}>
+                          {["live", "in-progress", "at-risk"].map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        <button onClick={() => setProjects(p2 => p2.filter(x => x.id !== p.id))} style={{ ...css.btnOut, fontSize: 10, color: t.risk }}>Remove</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {addingProj && (
+            <div style={{ ...css.card, border: `1px solid ${t.gold}` }}>
+              <div style={css.cardTitle}>New project</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
+                <input placeholder="Project name" value={newProj.name} onChange={e => setNewProj(p => ({ ...p, name: e.target.value }))} style={css.input} />
+                <input placeholder="Phase" value={newProj.phase} onChange={e => setNewProj(p => ({ ...p, phase: e.target.value }))} style={css.input} />
+                <input placeholder="Owner" value={newProj.owner} onChange={e => setNewProj(p => ({ ...p, owner: e.target.value }))} style={css.input} />
+                <input placeholder="Deadline YYYY-MM-DD" value={newProj.deadline} onChange={e => setNewProj(p => ({ ...p, deadline: e.target.value }))} style={css.input} />
+                <input placeholder="% complete" type="number" min={0} max={100} value={newProj.pct} onChange={e => setNewProj(p => ({ ...p, pct: parseInt(e.target.value) || 0 }))} style={css.input} />
+                <select value={newProj.status} onChange={e => setNewProj(p => ({ ...p, status: e.target.value }))} style={css.select}>
+                  {["live", "in-progress", "at-risk"].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button style={css.btnGold} onClick={() => { if (newProj.name) { setProjects(p => [...p, { ...newProj, id: Date.now() }]); setNewProj({ name: "", phase: "Planning", pct: 0, status: "in-progress", deadline: "", owner: "" }); setAddingProj(false); } }}>Add project</button>
+                <button style={css.btnOut} onClick={() => setAddingProj(false)}>Cancel</button>
+              </div>
+            </div>
+          )}
+        </>)}
+
+        {/* ── STACK ────────────────────────────────────────────────────────── */}
+        {tab === "stack" && (<>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+            <span style={{ fontSize: 10, color: t.muted, fontWeight: 600 }}>Source:</span>
+            {["all", "Marketing", "Product"].map(f => (
+              <Pill key={f} active={srcF === f} color={t.gold} onClick={() => setSrcF(f)}>{f === "all" ? "All" : f}</Pill>
+            ))}
+            <span style={{ fontSize: 10, color: t.muted, fontWeight: 600, marginLeft: 8 }}>Status:</span>
+            {["all", "Completed", "In progress", "Not started", "Blocked"].map(f => (
+              <Pill key={f} active={stF === f} color={t.gold} onClick={() => setStF(f)}>{f === "all" ? "All" : f}</Pill>
+            ))}
+            <button style={{ ...css.btnGold, marginLeft: "auto", fontSize: 10, padding: "4px 12px" }} onClick={() => setAddingRow(true)}>+ Add row</button>
+          </div>
+
+          {addingRow && (
+            <div style={{ ...css.card, border: `1px solid ${t.gold}`, marginBottom: 10 }}>
+              <div style={css.cardTitle}>New initiative</div>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
+                <input placeholder="Name" value={newRow.name} onChange={e => setNewRow(r => ({ ...r, name: e.target.value }))} style={css.input} />
+                <select value={newRow.src} onChange={e => setNewRow(r => ({ ...r, src: e.target.value }))} style={css.select}>
+                  {["Marketing", "Product"].map(s => <option key={s}>{s}</option>)}
+                </select>
+                <input placeholder="Category" value={newRow.cat} onChange={e => setNewRow(r => ({ ...r, cat: e.target.value }))} style={css.input} />
+                <select value={newRow.status} onChange={e => setNewRow(r => ({ ...r, status: e.target.value }))} style={css.select}>
+                  {["Not started", "In progress", "Completed", "Blocked", "Deprioritized"].map(s => <option key={s}>{s}</option>)}
+                </select>
+                <input placeholder="Owner" value={newRow.owner} onChange={e => setNewRow(r => ({ ...r, owner: e.target.value }))} style={css.input} />
+                <input placeholder="Priority" value={newRow.priority} onChange={e => setNewRow(r => ({ ...r, priority: e.target.value }))} style={css.input} />
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button style={css.btnGold} onClick={() => { if (newRow.name) { setStack(p => [...p, { ...newRow, id: Date.now() }]); setNewRow({ name: "", src: "Marketing", cat: "Onsite", status: "Not started", owner: "", priority: "P1" }); setAddingRow(false); } }}>Add to stack</button>
+                <button style={css.btnOut} onClick={() => setAddingRow(false)}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          <div style={{ ...css.card, padding: 0, overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+              <thead>
+                <tr>{["Initiative (click to edit)", "Source", "Category", "Status", "Owner", "Priority", ""].map((h, i) => (
+                  <th key={i} style={{ ...css.tblH, width: i === 0 ? "32%" : i === 6 ? "4%" : "auto" }}>{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody>
+                {filteredStack.map(row => (
+                  <tr key={row.id}>
+                    <td style={{ ...css.tblD, fontWeight: 500 }}>
+                      <InlineEdit value={row.name} onChange={v => updStack(row.id, "name", v)} style={{ fontSize: 11, color: t.text }} />
+                    </td>
+                    <td style={css.tblD}>
+                      <span style={{ fontSize: 10, padding: "1px 7px", borderRadius: 7, background: row.src === "Marketing" ? t.gold + "20" : t.gem + "20", color: row.src === "Marketing" ? t.gold : t.gem }}>{row.src}</span>
+                    </td>
+                    <td style={css.tblD}>
+                      <InlineEdit value={row.cat} onChange={v => updStack(row.id, "cat", v)} style={{ fontSize: 11, color: t.muted }} />
+                    </td>
+                    <td style={css.tblD}>
+                      <select value={row.status} onChange={e => updStack(row.id, "status", e.target.value)} style={{ ...css.select, fontSize: 10 }}>
+                        {["Not started", "In progress", "Completed", "Blocked", "Deprioritized"].map(s => <option key={s}>{s}</option>)}
+                      </select>
+                    </td>
+                    <td style={css.tblD}>
+                      <InlineEdit value={row.owner} onChange={v => updStack(row.id, "owner", v)} style={{ fontSize: 11, color: t.muted }} placeholder="—" />
+                    </td>
+                    <td style={css.tblD}>
+                      <InlineEdit value={row.priority} onChange={v => updStack(row.id, "priority", v)} style={{ fontSize: 11, color: t.muted }} placeholder="—" />
+                    </td>
+                    <td style={css.tblD}>
+                      <span onClick={() => setStack(p => p.filter(r => r.id !== row.id))} style={{ cursor: "pointer", color: t.risk, fontSize: 13 }}>×</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ ...css.card, marginTop: 12 }}>
+            <div style={css.cardTitle}>Stack summary</div>
+            <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+              {[{ label: "Completed", val: completed, c: t.gem }, { label: "In progress", val: inProg, c: t.accent }, { label: "Not started", val: stack.filter(r => r.status === "Not started").length, c: t.muted }, { label: "Blocked", val: blocked, c: t.risk }, { label: "Deprioritized", val: stack.filter(r => r.status === "Deprioritized").length, c: t.faint }].map(s => (
+                <div key={s.label} style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: s.c, fontFamily: "Georgia, serif" }}>{s.val}</div>
+                  <div style={{ fontSize: 10, color: t.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>)}
+
+        {/* ── COMMS ────────────────────────────────────────────────────────── */}
+        {tab === "comms" && (<>
+          <div style={css.card}>
+            <div style={css.cardTitle}>G-Chat / leadership update — editable</div>
+            <textarea value={gchat} onChange={e => setGchat(e.target.value)} rows={3} style={{ ...css.textarea, fontStyle: "italic", marginBottom: 10 }} />
+            <button onClick={() => copyText(gchat, "gchat")} style={css.btnGold}>{copied === "gchat" ? "Copied!" : "Copy update"}</button>
+          </div>
+
+          <div style={css.card}>
+            <div style={css.cardTitle}>War room notes — auto-saved</div>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={4} placeholder="Live meeting decisions, follow-ups, strategic calls — saved automatically to your browser..." style={css.textarea} />
+          </div>
+
+          <div style={css.card}>
+            <div style={css.cardTitle}>Google Sheets sync link</div>
+            <div style={{ fontSize: 12, color: t.muted, marginBottom: 8, lineHeight: 1.55 }}>Paste your published Google Sheet CSV URL here. The Universal Stacker will re-merge every time you open the app — any team edits in Sheets are picked up automatically.</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <input value={gsLink} onChange={e => setGsLink(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" style={{ ...css.input, flex: 1 }} />
+              <button style={css.btnGold} onClick={() => copyText("To connect: In Google Sheets → File → Share → Publish to web → CSV → Copy link → paste above.", "gs")}>How to connect</button>
+            </div>
+            {gsLink && <div style={{ fontSize: 11, color: t.gem }}>✓ Sheet linked — stacker will re-merge on next load</div>}
+          </div>
+
+          <div style={css.card}>
+            <div style={css.cardTitle}>Recovery key — never lose your work</div>
+            <div style={{ fontSize: 12, color: t.muted, marginBottom: 10, lineHeight: 1.55 }}>Generate the key below → copy it → paste it in any future Claude chat and say "Restore my Sanctuary." Every insight, project, note, and stack item returns exactly as you left it.</div>
+            <button style={css.btnGold} onClick={generateBackup}>Generate recovery key</button>
+            {backupCode && (<>
+              <div style={{ ...css.mono, marginTop: 10 }}>{backupCode}</div>
+              <button onClick={() => copyText(backupCode, "backup")} style={{ ...css.btnOut, marginTop: 6 }}>{copied === "backup" ? "Copied!" : "Copy recovery key"}</button>
+            </>)}
+          </div>
+
+          <div style={css.card}>
+            <div style={css.cardTitle}>Universal Stacker — Python auto-sync script</div>
+            <div style={{ fontSize: 12, color: t.muted, marginBottom: 8, lineHeight: 1.55 }}>Run once from your project folder. Every time you add or update a sheet, run again — fuzzy-matches columns automatically and exports a clean master CSV for Google Sheets import.</div>
+            <div style={css.mono}>{`import pandas as pd, glob
+from difflib import get_close_matches
+
+CANONICAL = ["name","status","owner","priority","category","source","details","deadline","notes"]
+
+sources = glob.glob("*.xlsx") + glob.glob("*.csv")
+frames = []
+
+for f in sources:
+    sheets = pd.read_excel(f, sheet_name=None) if f.endswith(".xlsx") else {"Sheet1": pd.read_csv(f)}
+    for sheet, df in sheets.items():
+        # Fuzzy-match column names to canonical schema
+        rename_map = {}
+        for col in df.columns:
+            matches = get_close_matches(col.lower().strip(), CANONICAL, n=1, cutoff=0.6)
+            if matches:
+                rename_map[col] = matches[0]
+        df = df.rename(columns=rename_map)
+        df["_source"] = f
+        df["_sheet"] = sheet
+        frames.append(df)
+
+master = pd.concat(frames, ignore_index=True)
+master.to_csv("noon_master_export.csv", index=False)
+print(f"Stacked {len(master)} rows from {len(sources)} files.")
+print("Google Sheets → File → Import → Upload noon_master_export.csv")`}</div>
+            <button onClick={() => copyText(`import pandas as pd, glob\nfrom difflib import get_close_matches\nCANONICAL = ["name","status","owner","priority","category","source","details","deadline","notes"]\nsources = glob.glob("*.xlsx") + glob.glob("*.csv")\nframes = []\nfor f in sources:\n    sheets = pd.read_excel(f, sheet_name=None) if f.endswith(".xlsx") else {"Sheet1": pd.read_csv(f)}\n    for sheet, df in sheets.items():\n        rename_map = {}\n        for col in df.columns:\n            matches = get_close_matches(col.lower().strip(), CANONICAL, n=1, cutoff=0.6)\n            if matches: rename_map[col] = matches[0]\n        df = df.rename(columns=rename_map)\n        df["_source"] = f; df["_sheet"] = sheet\n        frames.append(df)\nmaster = pd.concat(frames, ignore_index=True)\nmaster.to_csv("noon_master_export.csv", index=False)`, "script")} style={{ ...css.btnOut, marginTop: 8 }}>{copied === "script" ? "Copied!" : "Copy script"}</button>
+          </div>
+        </>)}
+
+      </div>
+    </div>
+  );
+}
